@@ -45,6 +45,8 @@ import { GmailSendModal } from './components/GmailSendModal';
 import { BottomNavigation, NavTab } from './components/Navigation';
 import { AdminPanelModal } from './components/AdminPanelModal';
 import { SuperAdminPortal } from './components/SuperAdminPortal';
+import { PWAInstallButton } from './components/PWAInstallButton';
+import { OfflineIndicator } from './components/OfflineIndicator';
 import { checkAdminStatus, isLocalSuperAdmin } from './services/adminService';
 import {
   calculateDistance,
@@ -912,6 +914,9 @@ export default function App() {
                 <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-slate-950" />
               )}
             </button>
+
+            {/* In-App PWA Install Button */}
+            <PWAInstallButton variant="header" />
           </div>
         </div>
       </header>
@@ -1319,6 +1324,9 @@ export default function App() {
         idToken={firebaseIdToken}
         isSuperAdmin={isSuperAdmin}
       />
+
+      {/* Connectivity & Offline State Indicator */}
+      <OfflineIndicator />
     </div>
   );
 }

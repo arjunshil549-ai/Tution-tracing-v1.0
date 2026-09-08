@@ -1,6 +1,10 @@
 {
   "name": "TuitionTrack",
   "description": "Automated geofence tuition attendance tracker with monthly reports, calendar view, and income tracking.",
-  "requestFramePermissions": ["geolocation"],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

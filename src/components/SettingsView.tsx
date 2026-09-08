@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AppSettings, NotificationItem, UserProfile } from '../types';
 import { isLastDayOfMonth } from '../services/geofence';
 import { GoogleSignInButton } from './GoogleSignInButton';
+import { PWAInstallButton } from './PWAInstallButton';
 import {
   Settings,
   Bell,
@@ -534,6 +535,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <span>No continuous location tracking or route history stored</span>
           </div>
         </div>
+      </div>
+
+      {/* PWA & Mobile Installation Section */}
+      <div className="p-5 rounded-3xl bg-slate-900 border border-slate-800 space-y-3">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center space-x-2">
+          <Smartphone className="w-4 h-4 text-emerald-400" />
+          <span>Mobile & Desktop App (PWA)</span>
+        </h3>
+        <PWAInstallButton variant="settings" />
       </div>
 
       {/* Data Management & Reset */}

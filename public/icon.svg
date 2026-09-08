@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090d16"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="16" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Background rounded rect -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
+  <rect width="504" height="504" x="4" y="4" rx="108" fill="none" stroke="#10b981" stroke-width="6" stroke-opacity="0.3"/>
+
+  <!-- Radar pulse circle -->
+  <circle cx="256" cy="256" r="176" fill="none" stroke="#10b981" stroke-width="4" stroke-opacity="0.15" stroke-dasharray="8 8"/>
+  <circle cx="256" cy="256" r="130" fill="none" stroke="#06b6d4" stroke-width="4" stroke-opacity="0.25"/>
+
+  <!-- Geofence Pin & Graduation Track Symbol -->
+  <g transform="translate(0, -10)">
+    <!-- Location Pin Base Glow -->
+    <path d="M256 100 C184 100 126 158 126 230 C126 312 240 404 251 413 C254 415 258 415 261 413 C272 404 386 312 386 230 C386 158 328 100 256 100 Z" 
+          fill="url(#accentGrad)" filter="url(#glow)"/>
+    
+    <!-- Central Inner Disc -->
+    <circle cx="256" cy="226" r="76" fill="#090d16"/>
+    
+    <!-- Tuition Cap / Checkmark motif -->
+    <!-- Cap Diamond -->
+    <polygon points="256,180 304,198 256,216 208,198" fill="#10b981"/>
+    <!-- Cap Base Arc -->
+    <path d="M224 212 L224 238 C224 254 288 254 288 238 L288 212" fill="none" stroke="#06b6d4" stroke-width="8" stroke-linecap="round"/>
+    <!-- Tassel -->
+    <path d="M304 198 L314 224 L314 246" fill="none" stroke="#34d399" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="314" cy="248" r="4" fill="#34d399"/>
+    
+    <!-- Verification Check Badge -->
+    <circle cx="256" cy="276" r="22" fill="#10b981"/>
+    <path d="M246 276 L253 283 L268 268" fill="none" stroke="#090d16" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

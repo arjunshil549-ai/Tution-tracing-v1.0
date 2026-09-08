@@ -30,6 +30,7 @@ export const tuitions = pgTable('tuitions', {
   minimumStayMinutes: integer('minimum_stay_minutes').notNull().default(30),
   active: boolean('active').notNull().default(true),
   createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 export const attendance = pgTable('attendance', {
@@ -44,7 +45,16 @@ export const attendance = pgTable('attendance', {
   duration: integer('duration').notNull().default(0), // in seconds
   status: text('status').notNull().default('completed'),
   notes: text('notes'),
+  source: text('source').notNull().default('WEB'), // GEOFENCE | MANUAL | WEB
+  clientEventId: text('client_event_id'), // Idempotency session key
+  arrivalLatitude: doublePrecision('arrival_latitude'),
+  arrivalLongitude: doublePrecision('arrival_longitude'),
+  arrivalAccuracy: doublePrecision('arrival_accuracy'),
+  departureLatitude: doublePrecision('departure_latitude'),
+  departureLongitude: doublePrecision('departure_longitude'),
+  departureAccuracy: doublePrecision('departure_accuracy'),
   createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 export const usersRelations = relations(users, ({ many }) => ({

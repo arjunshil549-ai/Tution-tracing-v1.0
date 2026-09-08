@@ -107,3 +107,41 @@ export async function recordAttendanceInCloudSql(
     return null;
   }
 }
+
+export async function syncAttendanceBatchWithCloudSql(
+  idToken: string,
+  items: Array<Omit<Attendance, 'id' | 'createdAt'>>
+): Promise<Attendance[] | null> {
+  try {
+    const res = await fetch('/api/attendance/sync', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${idToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(items),
+    });
+    if (!res.ok) throw new Error('Failed to sync attendance batch');
+    const data = await res.json();
+    return data.records || [];
+  } catch (err) {
+    console.warn('Cloud SQL batch sync error:', err);
+    return null;
+  }
+}
+
+export async function fetchActiveTuitionsFromCloudSql(idToken: string): Promise<Tuition[] | null> {
+  try {
+    const res = await fetch('/api/tuitions/active', {
+      headers: {
+        Authorization: `Bearer ${idToken}`,
+      },
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (err) {
+    console.warn('Cloud SQL fetch active tuitions error:', err);
+    return null;
+  }
+}
+

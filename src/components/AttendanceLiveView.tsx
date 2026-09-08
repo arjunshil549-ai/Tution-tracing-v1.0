@@ -394,80 +394,82 @@ export const AttendanceLiveView: React.FC<AttendanceLiveViewProps> = ({
           </div>
         </div>
 
-        {/* Geofence Simulator (For testing location arrival & auto calculations) */}
-        <div className="p-4 sm:p-5 rounded-3xl bg-slate-900/90 border border-slate-800 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Sparkles className="w-4 h-4 text-emerald-400" />
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                Geofence Radius Simulator
-              </h4>
-            </div>
-            <span className="text-[11px] font-mono text-emerald-400">
-              Radius: {tuition.radius}m
-            </span>
-          </div>
-
-          <p className="text-xs text-slate-400">
-            লোকেশন ঢুকলে বা বের হলে স্বয়ংক্রিয় হিসাব পরীক্ষা করার জন্য দূরত্ব পরিবর্তন করুন:
-          </p>
-
-          <div className="grid grid-cols-3 gap-2 pt-1">
-            <button
-              type="button"
-              onClick={() => handleDistanceChange(35)}
-              className={`p-2.5 rounded-2xl text-xs font-medium border transition text-center ${
-                distance <= 50
-                  ? 'bg-emerald-600/30 text-emerald-300 border-emerald-500 font-bold'
-                  : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
-              }`}
-            >
-              Inside (35m)
-              <span className="block text-[10px] text-slate-400 font-normal">ঢুকার জোন</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDistanceChange(90)}
-              className={`p-2.5 rounded-2xl text-xs font-medium border transition text-center ${
-                distance > 50 && distance <= tuition.radius
-                  ? 'bg-emerald-600/30 text-emerald-300 border-emerald-500 font-bold'
-                  : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
-              }`}
-            >
-              Edge (90m)
-              <span className="block text-[10px] text-slate-400 font-normal">সীমানার মধ্যে</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDistanceChange(160)}
-              className={`p-2.5 rounded-2xl text-xs font-medium border transition text-center ${
-                distance > tuition.radius
-                  ? 'bg-rose-600/30 text-rose-300 border-rose-500 font-bold'
-                  : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
-              }`}
-            >
-              Outside (160m)
-              <span className="block text-[10px] text-slate-400 font-normal">বের হওয়া</span>
-            </button>
-          </div>
-
-          {/* Quick Scenario Preset Matching User's Exact Prompt */}
-          <div className="pt-2 border-t border-slate-800/80">
-            <button
-              type="button"
-              onClick={handleLoadPromptExample}
-              className="w-full py-2.5 px-3 rounded-2xl bg-emerald-950/50 hover:bg-emerald-900/60 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center justify-between transition"
-            >
+        {/* Geofence Simulator (ONLY rendered in development mode; stripped/disabled in production) */}
+        {import.meta.env.DEV && (
+          <div className="p-4 sm:p-5 rounded-3xl bg-slate-900/90 border border-amber-500/30 space-y-3">
+            <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <Timer className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span className="text-left">
-                  Test Prompt Example: <strong>4:05 PM → 6:02 PM (1h 57m)</strong>
-                </span>
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <h4 className="text-xs font-bold uppercase tracking-wider text-amber-300">
+                  Dev Simulator (Local Debug Only)
+                </h4>
               </div>
-              <ArrowRight className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-            </button>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                Disabled in Production
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-400">
+              লোকেশন ঢুকলে বা বের হলে স্বয়ংক্রিয় হিসাব পরীক্ষা করার জন্য দূরত্ব পরিবর্তন করুন (প্রোডাকশনে স্বয়ংক্রিয় GPS ব্যবহৃত হয়):
+            </p>
+
+            <div className="grid grid-cols-3 gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => handleDistanceChange(35)}
+                className={`p-2.5 rounded-2xl text-xs font-medium border transition text-center ${
+                  distance <= 50
+                    ? 'bg-emerald-600/30 text-emerald-300 border-emerald-500 font-bold'
+                    : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                }`}
+              >
+                Inside (35m)
+                <span className="block text-[10px] text-slate-400 font-normal">ঢুকার জোন</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDistanceChange(90)}
+                className={`p-2.5 rounded-2xl text-xs font-medium border transition text-center ${
+                  distance > 50 && distance <= tuition.radius
+                    ? 'bg-emerald-600/30 text-emerald-300 border-emerald-500 font-bold'
+                    : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                }`}
+              >
+                Edge (90m)
+                <span className="block text-[10px] text-slate-400 font-normal">সীমানার মধ্যে</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDistanceChange(160)}
+                className={`p-2.5 rounded-2xl text-xs font-medium border transition text-center ${
+                  distance > tuition.radius
+                    ? 'bg-rose-600/30 text-rose-300 border-rose-500 font-bold'
+                    : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                }`}
+              >
+                Outside (160m)
+                <span className="block text-[10px] text-slate-400 font-normal">বের হওয়া</span>
+              </button>
+            </div>
+
+            {/* Quick Scenario Preset Matching User's Exact Prompt */}
+            <div className="pt-2 border-t border-slate-800/80">
+              <button
+                type="button"
+                onClick={handleLoadPromptExample}
+                className="w-full py-2.5 px-3 rounded-2xl bg-emerald-950/50 hover:bg-emerald-900/60 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center justify-between transition"
+              >
+                <div className="flex items-center space-x-2">
+                  <Timer className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span className="text-left">
+                    Test Prompt Scenario: <strong>4:05 PM → 6:02 PM (1h 57m)</strong>
+                  </span>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Action Button: Finish / Stop Session */}
         <div className="pt-1 pb-6">

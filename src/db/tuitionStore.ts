@@ -33,6 +33,7 @@ export async function getTuitionsByUser(userUid: string) {
       latitude: t.latitude,
       longitude: t.longitude,
       radius: t.radius,
+      radiusMeters: t.radius,
       expectedStart: t.expectedStart,
       expectedEnd: t.expectedEnd,
       fee: t.fee,
@@ -41,12 +42,46 @@ export async function getTuitionsByUser(userUid: string) {
       minimumStayMinutes: t.minimumStayMinutes,
       active: t.active,
       createdAt: t.createdAt ? t.createdAt.toISOString() : new Date().toISOString(),
+      updatedAt: t.updatedAt ? t.updatedAt.toISOString() : new Date().toISOString(),
     }));
   } catch (error) {
     console.error('Error in getTuitionsByUser:', error);
     throw new Error('Database query failed for tuitions.', { cause: error });
   }
 }
+
+export async function getActiveTuitionsByUser(userUid: string) {
+  try {
+    const list = await db
+      .select()
+      .from(tuitions)
+      .where(and(eq(tuitions.userUid, userUid), eq(tuitions.active, true)));
+
+    return list.map((t) => ({
+      id: t.id,
+      name: t.name,
+      studentName: t.studentName || undefined,
+      address: t.address,
+      latitude: t.latitude,
+      longitude: t.longitude,
+      radius: t.radius,
+      radiusMeters: t.radius,
+      expectedStart: t.expectedStart,
+      expectedEnd: t.expectedEnd,
+      fee: t.fee,
+      expectedClassesPerMonth: t.expectedClassesPerMonth,
+      scheduledDays: JSON.parse(t.scheduledDays || '[]') as number[],
+      minimumStayMinutes: t.minimumStayMinutes,
+      active: t.active,
+      createdAt: t.createdAt ? t.createdAt.toISOString() : new Date().toISOString(),
+      updatedAt: t.updatedAt ? t.updatedAt.toISOString() : new Date().toISOString(),
+    }));
+  } catch (error) {
+    console.error('Error in getActiveTuitionsByUser:', error);
+    throw new Error('Database query failed for active tuitions.', { cause: error });
+  }
+}
+
 
 export async function createTuition(userUid: string, data: TuitionDbInput) {
   try {

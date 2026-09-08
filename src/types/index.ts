@@ -6,6 +6,7 @@ export interface Tuition {
   latitude: number;
   longitude: number;
   radius: number; // in meters, e.g. 100
+  radiusMeters?: number; // alias for radius
   expectedStart: string; // e.g. "16:00"
   expectedEnd: string; // e.g. "18:00"
   fee: number; // Monthly fee in BDT / ৳, e.g. 8000
@@ -14,7 +15,11 @@ export interface Tuition {
   minimumStayMinutes: number; // e.g. 30
   active: boolean;
   createdAt: string;
+  updatedAt?: string;
 }
+
+export type AttendanceStatus = 'completed' | 'in_progress' | 'ignored' | 'COMPLETED' | 'IN_PROGRESS' | 'INVALID' | 'CANCELLED';
+export type AttendanceSource = 'GEOFENCE' | 'MANUAL' | 'WEB';
 
 export interface Attendance {
   id: number;
@@ -23,9 +28,19 @@ export interface Attendance {
   arrivalTime: string; // HH:mm or ISO e.g. "16:05"
   departureTime?: string; // HH:mm or ISO e.g. "18:02"
   duration: number; // seconds, e.g. 7020 (1h 57m)
-  status: 'completed' | 'in_progress' | 'ignored';
+  durationSeconds?: number; // alias for duration
+  status: AttendanceStatus;
   notes?: string;
+  source?: AttendanceSource;
+  clientEventId?: string;
+  arrivalLatitude?: number;
+  arrivalLongitude?: number;
+  arrivalAccuracy?: number;
+  departureLatitude?: number;
+  departureLongitude?: number;
+  departureAccuracy?: number;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface AppSettings {

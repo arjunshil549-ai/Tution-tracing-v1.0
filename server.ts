@@ -16,6 +16,7 @@ import {
 } from './src/db/adminsStore.ts';
 import {
   getTuitionsByUser,
+  getActiveTuitionsByUser,
   createTuition,
   updateTuition,
   deleteTuition,
@@ -25,10 +26,15 @@ import {
 import {
   getAttendanceByUser,
   createAttendance,
+  syncAttendanceBatch,
   deleteAttendance,
 } from './src/db/attendanceStore.ts';
+import { initializeDatabaseSchema } from './src/db/index.ts';
 
 async function startServer() {
+  // Ensure database tables and columns exist
+  await initializeDatabaseSchema();
+
   const app = express();
   const PORT = 3000;
 
@@ -112,9 +118,43 @@ async function startServer() {
     }
   });
 
+  // Active tuitions specifically for native geofence registration
+  app.get('/api/tuitions/active', requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const uid = req.user!.uid;
+      const list = await getActiveTuitionsByUser(uid);
+      res.json(list);
+    } catch (error: any) {
+      console.error('Failed to get active tuitions:', error);
+      res.status(500).json({ error: error.message || 'Failed to get active tuitions' });
+    }
+  });
+
   app.post('/api/tuitions', requireAuth, async (req: AuthRequest, res) => {
     try {
       const uid = req.user!.uid;
+      const { name, address, latitude, longitude, radius, fee, minimumStayMinutes } = req.body;
+
+      // Validation
+      if (!name || typeof name !== 'string') {
+        return res.status(400).json({ error: 'Tuition name is required.' });
+      }
+      if (typeof latitude !== 'number' || latitude < -90 || latitude > 90) {
+        return res.status(400).json({ error: 'Latitude must be a valid number between -90 and 90.' });
+      }
+      if (typeof longitude !== 'number' || longitude < -180 || longitude > 180) {
+        return res.status(400).json({ error: 'Longitude must be a valid number between -180 and 180.' });
+      }
+      if (radius !== undefined && (typeof radius !== 'number' || radius <= 0)) {
+        return res.status(400).json({ error: 'Radius must be a positive number of meters.' });
+      }
+      if (fee !== undefined && (typeof fee !== 'number' || fee < 0)) {
+        return res.status(400).json({ error: 'Fee cannot be negative.' });
+      }
+      if (minimumStayMinutes !== undefined && (typeof minimumStayMinutes !== 'number' || minimumStayMinutes <= 0)) {
+        return res.status(400).json({ error: 'Minimum stay must be greater than 0 minutes.' });
+      }
+
       // Ensure user exists first
       await getOrCreateUser(uid, req.user!.email || 'user@example.com');
       const tuition = await createTuition(uid, req.body);
@@ -129,6 +169,25 @@ async function startServer() {
     try {
       const uid = req.user!.uid;
       const id = parseInt(req.params.id, 10);
+      const { latitude, longitude, radius, fee, minimumStayMinutes } = req.body;
+
+      // Validation
+      if (latitude !== undefined && (typeof latitude !== 'number' || latitude < -90 || latitude > 90)) {
+        return res.status(400).json({ error: 'Latitude must be between -90 and 90.' });
+      }
+      if (longitude !== undefined && (typeof longitude !== 'number' || longitude < -180 || longitude > 180)) {
+        return res.status(400).json({ error: 'Longitude must be between -180 and 180.' });
+      }
+      if (radius !== undefined && (typeof radius !== 'number' || radius <= 0)) {
+        return res.status(400).json({ error: 'Radius must be a positive number.' });
+      }
+      if (fee !== undefined && (typeof fee !== 'number' || fee < 0)) {
+        return res.status(400).json({ error: 'Fee cannot be negative.' });
+      }
+      if (minimumStayMinutes !== undefined && (typeof minimumStayMinutes !== 'number' || minimumStayMinutes <= 0)) {
+        return res.status(400).json({ error: 'Minimum stay must be greater than 0.' });
+      }
+
       const updated = await updateTuition(uid, id, req.body);
       if (!updated) {
         return res.status(404).json({ error: 'Tuition not found or unauthorized' });
@@ -173,6 +232,41 @@ async function startServer() {
     } catch (error: any) {
       console.error('Failed to log attendance in Cloud SQL:', error);
       res.status(500).json({ error: error.message || 'Failed to log attendance' });
+    }
+  });
+
+  // Batch offline synchronization endpoint with idempotency support
+  app.post('/api/attendance/sync', requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const uid = req.user!.uid;
+      const items = Array.isArray(req.body) ? req.body : req.body.items || [];
+      if (!Array.isArray(items)) {
+        return res.status(400).json({ error: 'Expected an array of attendance items or { items: [...] }' });
+      }
+      await getOrCreateUser(uid, req.user!.email || 'user@example.com');
+      const synced = await syncAttendanceBatch(uid, items);
+      res.json({ success: true, count: synced.length, records: synced });
+    } catch (error: any) {
+      console.error('Failed to sync attendance batch in Cloud SQL:', error);
+      res.status(500).json({ error: error.message || 'Failed to sync attendance batch' });
+    }
+  });
+
+  // Geofence Event Telemetry & Status check
+  app.post('/api/geofence-events', requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const uid = req.user!.uid;
+      const { tuitionId, event, latitude, longitude, accuracy } = req.body;
+      res.json({
+        success: true,
+        userUid: uid,
+        tuitionId,
+        event,
+        coordinates: { latitude, longitude, accuracy },
+        recordedAt: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to record geofence event' });
     }
   });
 

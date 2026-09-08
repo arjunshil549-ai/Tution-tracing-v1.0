@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Tuition, Attendance } from '../types';
 import { formatDuration, formatTimeDisplay } from '../services/geofence';
 import {
@@ -23,6 +23,7 @@ interface TuitionDetailsModalProps {
   onToggleActive: (tuitionId: number) => void;
   onDelete: (tuitionId: number) => void;
   onLaunchLiveAttendance: (tuition: Tuition) => void;
+  onOpenCalendarSync?: (tuition: Tuition) => void;
 }
 
 export const TuitionDetailsModal: React.FC<TuitionDetailsModalProps> = ({
@@ -33,6 +34,7 @@ export const TuitionDetailsModal: React.FC<TuitionDetailsModalProps> = ({
   onToggleActive,
   onDelete,
   onLaunchLiveAttendance,
+  onOpenCalendarSync,
 }) => {
   // Calculate this month stats (September 2026)
   const monthlyLogs = attendanceLogs.filter(
@@ -48,6 +50,7 @@ export const TuitionDetailsModal: React.FC<TuitionDetailsModalProps> = ({
 
   // Income earned this month
   const earnedIncome = Math.round((tuition.fee / expectedClasses) * classesCount);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
@@ -192,6 +195,18 @@ export const TuitionDetailsModal: React.FC<TuitionDetailsModalProps> = ({
             </div>
           </div>
 
+          {/* Google Calendar Sync Button */}
+          {onOpenCalendarSync && (
+            <button
+              type="button"
+              onClick={() => onOpenCalendarSync(tuition)}
+              className="w-full py-2.5 px-4 rounded-xl bg-blue-950/60 hover:bg-blue-900/80 text-blue-300 border border-blue-800/60 text-xs font-semibold flex items-center justify-center space-x-2 transition"
+            >
+              <Calendar className="w-3.5 h-3.5 text-blue-400" />
+              <span>Sync Schedule with Google Calendar</span>
+            </button>
+          )}
+
           {/* Action Buttons */}
           <div className="flex items-center space-x-2 pt-2 border-t border-slate-800">
             <button
@@ -214,19 +229,36 @@ export const TuitionDetailsModal: React.FC<TuitionDetailsModalProps> = ({
               <Power className="w-3.5 h-3.5" />
               <span>{tuition.active ? 'Disable' : 'Enable'}</span>
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (confirm(`Delete tuition "${tuition.name}"?`)) {
-                  onDelete(tuition.id);
-                  onClose();
-                }
-              }}
-              className="p-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition"
-              title="Delete tuition"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            {showDeleteConfirm ? (
+              <div className="flex items-center space-x-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onDelete(tuition.id);
+                    onClose();
+                  }}
+                  className="px-2.5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition"
+                >
+                  Confirm Delete
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="px-2 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="p-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition"
+                title="Delete tuition"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
       </div>

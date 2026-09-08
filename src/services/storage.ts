@@ -1,4 +1,4 @@
-import { Tuition, Attendance, AppSettings, NotificationItem } from '../types';
+import { Tuition, Attendance, AppSettings, NotificationItem, UserProfile } from '../types';
 
 const STORAGE_KEYS = {
   TUITIONS: 'tuitiontrack_tuitions',
@@ -6,6 +6,9 @@ const STORAGE_KEYS = {
   SETTINGS: 'tuitiontrack_settings',
   NOTIFICATIONS: 'tuitiontrack_notifications',
   HAS_SEEDED: 'tuitiontrack_seeded_v1',
+  USER_PROFILE: 'tuitiontrack_user_profile',
+  ALL_USERS: 'tuitiontrack_all_users',
+  CLEANED_PRESETS: 'tuitiontrack_preset_cleaned_v2',
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -283,18 +286,33 @@ export const SEED_NOTIFICATIONS: NotificationItem[] = [
   },
 ];
 
+// Auto-clean preset dummy data so user starts fresh with clean slate as requested
+export function checkAndCleanPresets(): void {
+  try {
+    if (localStorage.getItem(STORAGE_KEYS.CLEANED_PRESETS) !== 'true') {
+      // Clear preset tuitions & attendance so app starts empty
+      localStorage.setItem(STORAGE_KEYS.TUITIONS, JSON.stringify([]));
+      localStorage.setItem(STORAGE_KEYS.ATTENDANCE, JSON.stringify([]));
+      localStorage.setItem(STORAGE_KEYS.CLEANED_PRESETS, 'true');
+    }
+  } catch (e) {
+    console.error('Error cleaning preset data', e);
+  }
+}
+
 // Storage helpers
 export function getStoredTuitions(): Tuition[] {
   try {
+    checkAndCleanPresets();
     const raw = localStorage.getItem(STORAGE_KEYS.TUITIONS);
     if (!raw) {
-      saveTuitions(SEED_TUITIONS);
-      return SEED_TUITIONS;
+      saveTuitions([]);
+      return [];
     }
     return JSON.parse(raw);
   } catch (e) {
     console.error('Error loading tuitions', e);
-    return SEED_TUITIONS;
+    return [];
   }
 }
 
@@ -304,15 +322,16 @@ export function saveTuitions(tuitions: Tuition[]): void {
 
 export function getStoredAttendance(): Attendance[] {
   try {
+    checkAndCleanPresets();
     const raw = localStorage.getItem(STORAGE_KEYS.ATTENDANCE);
     if (!raw) {
-      saveAttendance(SEED_ATTENDANCE);
-      return SEED_ATTENDANCE;
+      saveAttendance([]);
+      return [];
     }
     return JSON.parse(raw);
   } catch (e) {
     console.error('Error loading attendance', e);
-    return SEED_ATTENDANCE;
+    return [];
   }
 }
 
@@ -338,12 +357,11 @@ export function getStoredNotifications(): NotificationItem[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
     if (!raw) {
-      saveNotifications(SEED_NOTIFICATIONS);
-      return SEED_NOTIFICATIONS;
+      return [];
     }
     return JSON.parse(raw);
   } catch {
-    return SEED_NOTIFICATIONS;
+    return [];
   }
 }
 
@@ -356,4 +374,78 @@ export function resetToSeedData(): void {
   saveAttendance(SEED_ATTENDANCE);
   saveSettings(DEFAULT_SETTINGS);
   saveNotifications(SEED_NOTIFICATIONS);
+}
+
+export function clearAllData(): void {
+  saveTuitions([]);
+  saveAttendance([]);
+  saveNotifications([]);
+}
+
+// User Profile & Authentication helpers
+export function getStoredUserProfile(): UserProfile | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.USER_PROFILE);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+export function saveUserProfile(profile: UserProfile | null): void {
+  if (!profile) {
+    localStorage.removeItem(STORAGE_KEYS.USER_PROFILE);
+    return;
+  }
+  localStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(profile));
+
+  // Maintain registered users list for easy switching / login
+  try {
+    const all = getStoredAllUsers();
+    const index = all.findIndex((u) => u.id === profile.id || u.email === profile.email);
+    if (index >= 0) {
+      all[index] = profile;
+    } else {
+      all.push(profile);
+    }
+    localStorage.setItem(STORAGE_KEYS.ALL_USERS, JSON.stringify(all));
+  } catch (e) {
+    console.error('Error saving user to all users list', e);
+  }
+}
+
+export function getStoredAllUsers(): UserProfile[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.ALL_USERS);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function logoutUserProfile(): void {
+  localStorage.removeItem(STORAGE_KEYS.USER_PROFILE);
+}
+
+export function removeStoredUser(userIdOrEmail: string): void {
+  try {
+    const all = getStoredAllUsers();
+    const filtered = all.filter(
+      (u) =>
+        u.id !== userIdOrEmail &&
+        u.email.toLowerCase() !== userIdOrEmail.toLowerCase()
+    );
+    localStorage.setItem(STORAGE_KEYS.ALL_USERS, JSON.stringify(filtered));
+
+    const current = getStoredUserProfile();
+    if (
+      current &&
+      (current.id === userIdOrEmail || current.email.toLowerCase() === userIdOrEmail.toLowerCase())
+    ) {
+      logoutUserProfile();
+    }
+  } catch (e) {
+    console.error('Error removing stored user', e);
+  }
 }

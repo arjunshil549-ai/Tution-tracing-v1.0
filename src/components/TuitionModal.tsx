@@ -43,8 +43,40 @@ export const TuitionModal: React.FC<TuitionModalProps> = ({
     editingTuition?.scheduledDays || [1, 3, 5]
   );
   const [active, setActive] = useState(editingTuition?.active ?? true);
-
+  const [nameError, setNameError] = useState('');
   const [showMapPicker, setShowMapPicker] = useState(false);
+
+  // Sync state whenever editingTuition or isOpen changes
+  React.useEffect(() => {
+    if (isOpen) {
+      setName(editingTuition?.name || '');
+      setStudentName(editingTuition?.studentName || '');
+      setAddress(editingTuition?.address || 'Farmgate, Dhaka');
+      setLatitude(editingTuition?.latitude || 23.7563);
+      setLongitude(editingTuition?.longitude || 90.3891);
+      setRadius(editingTuition?.radius || 100);
+      setExpectedStart(editingTuition?.expectedStart || '16:00');
+      setExpectedEnd(editingTuition?.expectedEnd || '18:00');
+      setFee(editingTuition?.fee || 8000);
+      setExpectedClasses(editingTuition?.expectedClassesPerMonth || 10);
+      setMinimumStayMinutes(editingTuition?.minimumStayMinutes || 30);
+      setScheduledDays(editingTuition?.scheduledDays || [1, 3, 5]);
+      setActive(editingTuition?.active ?? true);
+      setNameError('');
+    }
+  }, [isOpen, editingTuition]);
+
+  const handleFillSample = () => {
+    setName('Farmgate Physics Batch');
+    setStudentName('Tanvir (Class 10)');
+    setAddress('Farmgate, Tejgaon, Dhaka');
+    setLatitude(23.7563);
+    setLongitude(90.3891);
+    setRadius(100);
+    setFee(8000);
+    setExpectedClasses(10);
+    setNameError('');
+  };
 
   const toggleDay = (dayId: number) => {
     if (scheduledDays.includes(dayId)) {
@@ -65,22 +97,25 @@ export const TuitionModal: React.FC<TuitionModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      setNameError('অনুগ্রহ করে টিউশনের একটি নাম দিন (Tuition name is required)');
+      return;
+    }
 
     onSave(
       {
         name: name.trim(),
         studentName: studentName.trim(),
-        address: address.trim(),
-        latitude,
-        longitude,
-        radius: Number(radius),
+        address: address.trim() || 'Dhaka, Bangladesh',
+        latitude: Number(latitude) || 23.7563,
+        longitude: Number(longitude) || 90.3891,
+        radius: Number(radius) || 100,
         expectedStart,
         expectedEnd,
-        fee: Number(fee),
-        expectedClassesPerMonth: Number(expectedClasses),
+        fee: Number(fee) || 0,
+        expectedClassesPerMonth: Number(expectedClasses) || 10,
         scheduledDays,
-        minimumStayMinutes: Number(minimumStayMinutes),
+        minimumStayMinutes: Number(minimumStayMinutes) || 30,
         active,
       },
       editingTuition?.id
@@ -112,15 +147,34 @@ export const TuitionModal: React.FC<TuitionModalProps> = ({
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 max-h-[80vh] overflow-y-auto">
           {/* Tuition Name */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300">Tuition Name *</label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-slate-300">Tuition Name *</label>
+              {!editingTuition && (
+                <button
+                  type="button"
+                  onClick={handleFillSample}
+                  className="text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 hover:underline"
+                >
+                  ⚡ Fill Sample (নমুনা পূরণ)
+                </button>
+              )}
+            </div>
             <input
               type="text"
               required
               value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Farmgate Tuition"
-              className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
+              onChange={(e) => {
+                setName(e.target.value);
+                if (nameError) setNameError('');
+              }}
+              placeholder="e.g. Farmgate Tuition / ফার্মগেট টিউশন"
+              className={`w-full px-3.5 py-2.5 bg-slate-950 border rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none transition ${
+                nameError ? 'border-rose-500 focus:border-rose-400' : 'border-slate-700/80 focus:border-emerald-500'
+              }`}
             />
+            {nameError && (
+              <p className="text-xs text-rose-400 font-medium">{nameError}</p>
+            )}
           </div>
 
           {/* Student/Subject Descriptor */}

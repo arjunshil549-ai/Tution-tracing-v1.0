@@ -39,6 +39,12 @@ export function isInsideGeofence(
   };
 }
 
+export function formatClockTime(date: Date = new Date()): string {
+  const h = String(date.getHours()).padStart(2, '0');
+  const m = String(date.getMinutes()).padStart(2, '0');
+  return `${h}:${m}`;
+}
+
 export function formatDuration(seconds: number): string {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
@@ -53,6 +59,93 @@ export function formatDurationHMS(seconds: number): string {
   const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+export function formatDistance(meters: number): string {
+  if (meters < 1000) {
+    return `${Math.round(meters)}m`;
+  }
+  return `${(meters / 1000).toFixed(1)} km`;
+}
+
+export interface UserLocation {
+  latitude: number;
+  longitude: number;
+  accuracy: number;
+  timestamp: number;
+}
+
+/**
+ * Watch user GPS coordinates using browser Geolocation API
+ */
+export function watchUserLocation(
+  onPosition: (loc: UserLocation) => void,
+  onError?: (err: GeolocationPositionError) => void
+): () => void {
+  if (typeof navigator === 'undefined' || !navigator.geolocation) {
+    if (onError) {
+      onError({
+        code: 2,
+        message: 'Geolocation is not supported by your browser',
+        PERMISSION_DENIED: 1,
+        POSITION_UNAVAILABLE: 2,
+        TIMEOUT: 3,
+      } as GeolocationPositionError);
+    }
+    return () => {};
+  }
+
+  const watchId = navigator.geolocation.watchPosition(
+    (pos) => {
+      onPosition({
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+        accuracy: pos.coords.accuracy,
+        timestamp: pos.timestamp,
+      });
+    },
+    (err) => {
+      if (onError) onError(err);
+    },
+    {
+      enableHighAccuracy: true,
+      maximumAge: 10000,
+      timeout: 15000,
+    }
+  );
+
+  return () => {
+    navigator.geolocation.clearWatch(watchId);
+  };
+}
+
+/**
+ * Get single current GPS position
+ */
+export function getCurrentGPSPosition(): Promise<UserLocation> {
+  return new Promise((resolve, reject) => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      reject(new Error('Geolocation not supported'));
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        resolve({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+          timestamp: pos.timestamp,
+        });
+      },
+      (err) => reject(err),
+      {
+        enableHighAccuracy: true,
+        maximumAge: 10000,
+        timeout: 15000,
+      }
+    );
+  });
 }
 
 export function formatTimeDisplay(timeStr: string): string {

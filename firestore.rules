@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // All production data is managed via Cloud SQL and protected server APIs.
+    // Lock down client-side Firestore to prevent direct tampering or unauthorized data access.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

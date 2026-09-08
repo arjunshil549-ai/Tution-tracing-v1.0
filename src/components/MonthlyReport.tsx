@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Tuition, Attendance, AppSettings } from '../types';
 import { formatDuration, formatTimeDisplay } from '../services/geofence';
+import { exportTuitionReportToSheets, SheetExportResult } from '../services/workspace';
+import { GmailSendModal } from './GmailSendModal';
 import {
   Calendar as CalendarIcon,
   CheckCircle2,
@@ -13,23 +15,39 @@ import {
   Info,
   Layers,
   Sparkles,
+  FileSpreadsheet,
+  Mail,
+  ExternalLink,
+  Loader2,
 } from 'lucide-react';
 
 interface MonthlyReportProps {
   tuitions: Tuition[];
   attendanceLogs: Attendance[];
   settings: AppSettings;
+  googleAccessToken?: string | null;
+  onPromptGoogleAuth?: () => void;
 }
 
 export const MonthlyReport: React.FC<MonthlyReportProps> = ({
   tuitions,
   attendanceLogs,
   settings,
+  googleAccessToken,
+  onPromptGoogleAuth,
 }) => {
   const [selectedYear, setSelectedYear] = useState(2026);
   const [selectedMonth, setSelectedMonth] = useState(9); // September (1-indexed)
   const [selectedDateStr, setSelectedDateStr] = useState<string | null>('2026-09-07');
   const [activeTab, setActiveTab] = useState<'overview' | 'calendar' | 'daily'>('overview');
+
+  // Google Sheets state
+  const [isExportingSheets, setIsExportingSheets] = useState(false);
+  const [sheetResult, setSheetResult] = useState<SheetExportResult | null>(null);
+  const [sheetsError, setSheetsError] = useState<string | null>(null);
+
+  // Gmail modal state
+  const [isGmailModalOpen, setIsGmailModalOpen] = useState(false);
 
   // Month prefix string e.g. "2026-09"
   const monthPrefix = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
@@ -51,7 +69,7 @@ export const MonthlyReport: React.FC<MonthlyReportProps> = ({
     .reduce((sum, t) => sum + (t.expectedClassesPerMonth || 10), 0);
   const attendanceRate = totalExpectedClasses > 0
     ? Math.min(100, Math.round((monthLogs.length / totalExpectedClasses) * 100))
-    : 100;
+    : 0;
 
   // Income calculations (Section 30 of prompt)
   const totalExpectedIncome = tuitions
@@ -102,6 +120,50 @@ export const MonthlyReport: React.FC<MonthlyReportProps> = ({
     document.body.removeChild(link);
   };
 
+  const handleExportGoogleSheets = async () => {
+    if (!googleAccessToken) {
+      if (onPromptGoogleAuth) onPromptGoogleAuth();
+      return;
+    }
+    setIsExportingSheets(true);
+    setSheetsError(null);
+    try {
+      const res = await exportTuitionReportToSheets(
+        googleAccessToken,
+        'September',
+        selectedYear,
+        tuitions,
+        monthLogs
+      );
+      setSheetResult(res);
+    } catch (err: any) {
+      console.error('Google Sheets export failed:', err);
+      setSheetsError(err.message || 'Failed to export to Google Sheets.');
+    } finally {
+      setIsExportingSheets(false);
+    }
+  };
+
+  const emailDefaultBody = `TuitionTrack Attendance & Fee Statement
+Month: September ${selectedYear}
+Generated: ${new Date().toLocaleDateString()}
+
+SUMMARY:
+• Total Tuition Sessions: ${attendedDaysCount}
+• Total Hours Taught: ${totalDurationFormatted}
+• Estimated Earned: ৳${earnedIncome.toLocaleString()}
+
+TUITION BREAKDOWN:
+${tuitions
+  .map((t) => {
+    const done = monthLogs.filter((l) => l.tuitionId === t.id).length;
+    return `• ${t.name} (${t.studentName || 'Student'}): ${done}/${t.expectedClassesPerMonth || 10} classes completed - ৳${t.fee.toLocaleString()}`;
+  })
+  .join('\n')}
+
+Detailed attendance logs are recorded in TuitionTrack.
+Thank you!`;
+
   return (
     <div id="monthly-report-view" className="space-y-6 pb-20">
       {/* Month Selector Bar & Export */}
@@ -116,17 +178,79 @@ export const MonthlyReport: React.FC<MonthlyReportProps> = ({
           <p className="text-xs text-slate-400">Attendance analytics, tuition breakdown, and earned income</p>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Google Sheets Export */}
+          <button
+            type="button"
+            onClick={handleExportGoogleSheets}
+            disabled={isExportingSheets}
+            className="px-3.5 py-2 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 text-xs font-semibold border border-emerald-800/60 flex items-center space-x-1.5 transition disabled:opacity-60"
+            title="Export full report to Google Sheets spreadsheet"
+          >
+            {isExportingSheets ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-400" />
+            ) : (
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+            )}
+            <span>{isExportingSheets ? 'Exporting...' : 'Google Sheets'}</span>
+          </button>
+
+          {/* Gmail Send */}
+          <button
+            type="button"
+            onClick={() => {
+              if (!googleAccessToken && onPromptGoogleAuth) {
+                onPromptGoogleAuth();
+              } else {
+                setIsGmailModalOpen(true);
+              }
+            }}
+            className="px-3.5 py-2 rounded-xl bg-red-950/60 hover:bg-red-900/80 text-red-300 text-xs font-semibold border border-red-800/60 flex items-center space-x-1.5 transition"
+            title="Send report email via Gmail"
+          >
+            <Mail className="w-3.5 h-3.5 text-red-400" />
+            <span>Email via Gmail</span>
+          </button>
+
+          {/* Standard CSV */}
           <button
             type="button"
             onClick={handleExportCSV}
-            className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-semibold border border-slate-800 flex items-center space-x-1.5 transition"
+            className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold border border-slate-800 flex items-center space-x-1.5 transition"
           >
-            <Download className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Export CSV</span>
+            <Download className="w-3.5 h-3.5 text-slate-400" />
+            <span>CSV</span>
           </button>
         </div>
       </div>
+
+      {/* Google Sheets Feedback Banner */}
+      {sheetResult && (
+        <div className="p-4 rounded-2xl bg-emerald-950/50 border border-emerald-500/30 flex items-center justify-between gap-3 text-xs text-emerald-200">
+          <div className="flex items-center space-x-2.5">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+            <div>
+              <p className="font-semibold text-white">Google Sheet Created Successfully!</p>
+              <p className="text-emerald-300/80 text-[11px]">{sheetResult.title}</p>
+            </div>
+          </div>
+          <a
+            href={sheetResult.spreadsheetUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold flex items-center space-x-1.5 transition shadow"
+          >
+            <span>Open Sheet</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+        </div>
+      )}
+
+      {sheetsError && (
+        <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-xs text-red-400">
+          {sheetsError}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex items-center space-x-2 border-b border-slate-800/80 pb-2">
@@ -224,7 +348,12 @@ export const MonthlyReport: React.FC<MonthlyReportProps> = ({
             </div>
 
             <div className="space-y-4 pt-1">
-              {tuitions.map((tuition) => {
+              {tuitions.length === 0 ? (
+                <div className="text-center py-6 text-slate-400 text-xs bg-slate-950/50 rounded-2xl border border-slate-800/60 p-4">
+                  কোনো টিউশন যুক্ত করা নেই (No tuitions added yet). Add a tuition to start tracking monthly breakdown.
+                </div>
+              ) : (
+                tuitions.map((tuition) => {
                 const tLogs = monthLogs.filter((l) => l.tuitionId === tuition.id);
                 const attended = tLogs.length;
                 const expected = tuition.expectedClassesPerMonth || 10;
@@ -266,7 +395,7 @@ export const MonthlyReport: React.FC<MonthlyReportProps> = ({
                     </div>
                   </div>
                 );
-              })}
+              }))}
             </div>
           </div>
 
@@ -496,6 +625,17 @@ export const MonthlyReport: React.FC<MonthlyReportProps> = ({
             })}
           </div>
         </div>
+      )}
+
+      {/* Gmail Send Modal */}
+      {googleAccessToken && (
+        <GmailSendModal
+          isOpen={isGmailModalOpen}
+          onClose={() => setIsGmailModalOpen(false)}
+          accessToken={googleAccessToken}
+          defaultSubject={`TuitionTrack Monthly Statement - September ${selectedYear}`}
+          defaultBody={emailDefaultBody}
+        />
       )}
     </div>
   );

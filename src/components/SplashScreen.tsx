@@ -3,22 +3,28 @@ import { MapPin, Navigation } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface SplashScreenProps {
-  onComplete: () => void;
+  onComplete?: () => void;
+  onFinish?: () => void;
 }
 
-export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
+export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete, onFinish }) => {
+  const handleFinish = () => {
+    if (onComplete) onComplete();
+    if (onFinish) onFinish();
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => {
-      onComplete();
+      handleFinish();
     }, 2200);
 
     return () => clearTimeout(timer);
-  }, [onComplete]);
+  }, [onComplete, onFinish]);
 
   return (
     <div
       id="splash-screen"
-      onClick={onComplete}
+      onClick={handleFinish}
       className="fixed inset-0 z-50 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 flex flex-col items-center justify-center p-6 text-center cursor-pointer select-none"
     >
       <motion.div

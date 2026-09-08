@@ -46,6 +46,18 @@ export interface NotificationItem {
   read: boolean;
 }
 
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  institution?: string; // e.g. Dhaka University, BUET, etc.
+  subject?: string; // e.g. Physics, Mathematics
+  avatarColor?: string;
+  bio?: string;
+  createdAt: string;
+}
+
 export interface UserLocation {
   latitude: number;
   longitude: number;
